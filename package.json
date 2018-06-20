@@ -1,0 +1,22 @@
+{
+  "name": "pass",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^2.4.1",
+    "inquirer": "^5.2.0",
+    "inquirer-autocomplete-prompt": "^0.12.2",
+    "nodegit": "^0.22.1",
+    "vorpal": "^1.12.0"
+  },
+  "devDependencies": {
+    "jsdoc": "^3.5.5",
+    "standard": "^11.0.1"
+  }
+}
