@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "chalk": "^2.4.1",
+    "clipboardy": "^1.2.3",
     "inquirer": "^5.2.0",
     "inquirer-autocomplete-prompt": "^0.12.2",
     "nodegit": "^0.22.1",

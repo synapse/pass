@@ -76,6 +76,7 @@ const types = {
         ];
     },
     creditCard: (answers) => {
+        console.log('Answers', answers);
         return [
             {
                 type: 'input',
@@ -89,9 +90,9 @@ const types = {
                 default: (answers && answers.cardholderName) ? answers.cardholderName : null
             }, {
                 type: 'list',
-                name: 'type',
+                name: 'cardType',
                 message: 'Type',
-                default: (answers && answers.type) ? answers.type : null,
+                default: (answers && answers.cardType) ? answers.cardType : null,
                 choices: ['VISA', 'MasterCard', 'American Express', 'Diners Club', 'Carte Blanche', 'Discover', 'JCB', 'MasterCard Maestro', 'VISA Electron', 'Laser', 'UnionPay', 'Other']
             }, {
                 type: 'input',
@@ -224,6 +225,17 @@ const types = {
 };
 
 const ask = (storeType, callback, answers) => {
+    // in case we edit a password store
+    if (answers.type === 'creditCard') {
+        if (typeof answers.contactInfo !== 'undefined') {
+            answers.addContactInfo = true;
+        }
+
+        if (typeof answers.additionalDetails !== 'undefined') {
+            answers.addAdditionalDetails = true;
+        }
+    }
+
     inquirer.prompt(types[storeType](answers)).then(answers => {
         if (!answers.confirm) {
             ask(storeType, callback, answers);
@@ -233,7 +245,7 @@ const ask = (storeType, callback, answers) => {
                 delete answers[clean];
             });
 
-            // we want a more details object structure for the credit card
+            // we want a more detailed object structure for the credit card
             if (storeType === 'creditCard') {
                 if (typeof answers.contactInfo === 'undefined') answers.contactInfo = {};
                 if (typeof answers.additionalDetails === 'undefined') answers.additionalDetails = {};
@@ -244,6 +256,7 @@ const ask = (storeType, callback, answers) => {
                         delete answers[info];
                     }
                 });
+
                 ['pin', 'creditLimit', 'cashWithdrawalLimit', 'interestRate', 'issueNumber'].forEach(info => {
                     if (typeof answers[info] !== 'undefined') {
                         answers.additionalDetails[info] = answers[info];
@@ -252,8 +265,15 @@ const ask = (storeType, callback, answers) => {
                 });
             }
 
+            if (typeof answers.created === 'undefined') {
+                answers.created = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            }
+            answers.updated = new Date().toISOString().slice(0, 19).replace('T', ' ');
+
             callback(answers);
         }
+    }).catch(error => {
+        console.log(error);
     });
 };
 
@@ -288,12 +308,40 @@ const printInfo = info => {
     console.log('\n');
 };
 
+const copyInfo = info => {
+    let data = '';
+
+    for (let key in info) {
+        switch (key) {
+        case 'type':
+        case 'addContactInfo':
+        case 'addAdditionalDetails':
+            continue;
+
+        case 'contactInfo':
+        case 'additionalDetails':
+            data += `\r\n${getLabel(key)}:\r\n`;
+            for (let subkey in info[key]) {
+                data += `${getLabel(subkey).concat(':')} ${info[key][subkey]}\r\n`;
+            }
+            break;
+
+        default:
+            data += `${getLabel(key).concat(':')} ${info[key]}\r\n`;
+            break;
+        }
+    }
+
+    return data;
+};
+
 module.exports = {
     ask,
     typeList,
     types,
     getLabel,
-    printInfo
+    printInfo,
+    copyInfo
 };
 
 /*

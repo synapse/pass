@@ -3,6 +3,7 @@ const path = require('path');
 const vorpal = require('vorpal')();
 const inquirer = require('inquirer');
 const chalk = require('chalk');
+const clipboardy = require('clipboardy');
 
 const Settings = require('./settings');
 const Stores = require('./stores');
@@ -376,8 +377,9 @@ class Pass {
                         return this.stores.getCurrent().find(input);
                     }
                 }]).then(info => {
-                    let choices = [
+                    const choices = [
                         {name: 'View', value: 'view'},
+                        {name: 'Edit', value: 'edit'},
                         {name: 'Copy to clipboard', value: 'copy'},
                         new inquirer.Separator(),
                         {name: 'Delete', value: 'delete'}
@@ -392,7 +394,22 @@ class Pass {
                         if (answer.what === 'view') {
                             StoreTypes.printInfo(info.selected);
                             callback();
+                        } else if (answer.what === 'edit') {
+                            StoreTypes.ask(info.selected.type, updatedInfo => {
+                                this.stores.getCurrent().add(info.selected.type, updatedInfo, info.selected).then(result => {
+                                    log.success('Password info updated successfully!');
+                                    log.nl();
+                                    callback();
+                                }).catch(error => {
+                                    log.error(error);
+                                    log.nl();
+                                    callback();
+                                });
+                            }, info.selected);
                         } else if (answer.what === 'copy') {
+                            clipboardy.writeSync(StoreTypes.copyInfo(info.selected));
+                            log.success('Password info copied to clipboard successfully!');
+                            log.nl();
                             callback();
                         } else if (answer.what === 'delete') {
                             inquirer.prompt([{

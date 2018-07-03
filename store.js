@@ -25,10 +25,11 @@ const Store = class Store {
      * adds a new record to the password store
      * @param {string} type
      * @param {object} info
+     * @param {object} oldInfo
      * @function
      * @returns {Promise}
      */
-    add (type, info) {
+    add (type, info, oldInfo) {
         return new Promise((resolve, reject) => {
             delete info.confirm;
 
@@ -48,6 +49,19 @@ const Store = class Store {
                     fs.mkdirSync(storePathType);
                 } catch (error) {
                     reject(error);
+                    return;
+                }
+            }
+
+            // if we're updating a store
+            const oldStoreFileName = oldInfo.label.replace(/ +/g, '-').toLowerCase() + '.json';
+            if (typeof oldInfo !== 'undefined' && oldStoreFileName !== storeFileName) {
+                try {
+                    fs.unlinkSync(path.join(storePathType, oldStoreFileName));
+                    this.removeIndex(`./${oldInfo.type}/${oldStoreFileName}`);
+                } catch (error) {
+                    reject(error);
+                    return;
                 }
             }
 
@@ -95,20 +109,21 @@ const Store = class Store {
 
                     if (storeSafeString.check) {
                         for (let key in storeSafeData) {
-                            if (storeSafeData[key].indexOf(term) > -1) {
+                            if (typeof storeSafeData[key] === 'string' && storeSafeData[key].toLowerCase().indexOf(term.toLowerCase()) > -1) {
                                 found.push({...storeSafeData, type: index.type});
                                 break;
                             }
                         }
                     }
-
-                    resolve(found.map(pass => {
-                        return {name: `${pass.label} (${pass.type})`, value: pass};
-                    }));
                 } catch (error) {
-                    reject(error);
+                    // reject(error);
+                    found.push({label: `Password store file missing (${index.path})! try running a reindex to fix this`, type: 'Unknown'});
                 }
             });
+
+            resolve(found.map(pass => {
+                return {name: `${pass.label} (${pass.type})`, value: pass};
+            }));
         });
     }
 
@@ -155,13 +170,17 @@ const Store = class Store {
     }
 
     addIndex (index) {
-        this.store.indexes.push(index);
-
-        try {
-            fs.writeFileSync(this.storeBasePath, JSON.stringify(this.store, undefined, 4));
-        } catch (error) {
-            console.log(error);
+        if (this.store.indexes.indexOf(index) === -1) {
+            this.store.indexes.push(index);
+            this.save();
         }
+    }
+
+    removeIndex (path) {
+        this.store.indexes = this.store.indexes.filter(index => {
+            return index.path !== path;
+        });
+        this.save();
     }
 
     reindex () {
